@@ -3,6 +3,7 @@ package com.example.myapplication
 import android.graphics.Color
 import android.location.Geocoder
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
@@ -56,6 +57,20 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         gMap = googleMap
         // Set our custom info window adapter
         gMap.setInfoWindowAdapter(CustomInfoWindowAdapter())
+
+        val defaultLocation = LatLng(28.7041, 77.1025)
+        val zoomLevel = 10f // Adjust zoom level
+
+        // Move camera to the default location
+        gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, zoomLevel))
+
+        val markerLocations = listOf(
+            LatLng(28.6429, 77.2191) to "New Delhi Railway Station",
+            LatLng(28.6119, 77.1157) to "Delhi Cantt station"
+        )
+
+        for ((location, title) in markerLocations) {
+            gMap.addMarker(MarkerOptions().position(location).title(title))}
     }
 
     private fun searchLocation(locationName: String) {
@@ -72,16 +87,18 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
                     withContext(Dispatchers.Main) {
                         // Clear previous markers and add a new one
-                        gMap.clear()
-                        val marker = gMap.addMarker(
-                            MarkerOptions().position(location).title(locationName)
-                        )
-                        // Attach the safety rating to the marker as a tag
-                        marker?.tag = safetyRating
+                        //gMap.clear()
+//                        val marker = gMap.addMarker(
+//                            MarkerOptions().position(location).title(locationName)
+//                        )
+//                        // Attach the safety rating to the marker as a tag
+//                        marker?.tag = safetyRating
 
+                        Log.d("BeforeMove", "Visited")
                         // Move the camera and show the custom info window
-                        gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 12f))
-                        marker?.showInfoWindow()
+                        gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 14f))
+                        //marker?.showInfoWindow()
+                        Log.d("AfterMove", "Visited")
                     }
                 } else {
                     withContext(Dispatchers.Main) {
