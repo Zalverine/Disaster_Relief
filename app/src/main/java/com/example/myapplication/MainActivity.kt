@@ -25,10 +25,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
+
+import com.google.firebase.database.*
+
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var gMap: GoogleMap
     private lateinit var searchInput: EditText
     private lateinit var searchButton: Button
+    private lateinit var database: DatabaseReference
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,6 +46,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         val mapFragment = supportFragmentManager.findFragmentById(R.id._map) as? SupportMapFragment
         mapFragment?.getMapAsync(this)
 
+        database = FirebaseDatabase.getInstance().getReference("stampede")
+
         // Set up search button click listener
         searchButton.setOnClickListener {
             val locationName = searchInput.text.toString()
@@ -52,6 +58,36 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
     }
+    private fun fetchFirebaseData() {
+        database.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    Log.d("@@@@", "Update done")
+                    gMap.clear()
+                    for (x in snapshot.children){
+                        val place = x.key
+                        val density = x.child("Density").getValue(Double::class.java)
+                        val lat = x.child("Latitude").getValue(Double::class.java) ?: 0.0
+                        val lan = x.child("Longitude").getValue(Double::class.java) ?: 0.0
+                        val loc = x.child("Location").getValue(String::class.java) ?: ""
+
+                        val marker = gMap.addMarker(MarkerOptions().position(LatLng(lat, lan)).title(loc))
+                        marker?.tag = density
+
+                    }
+                    //val density = snapshot.child("densityHuman").getValue(Double::class.java) ?: 0.0
+
+
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("FirebaseError", "Error fetching data: ${error.message}")
+            }
+        })
+    }
+
+
 
     override fun onMapReady(googleMap: GoogleMap) {
         gMap = googleMap
@@ -64,13 +100,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         // Move camera to the default location
         gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, zoomLevel))
 
-        val markerLocations = listOf(
-            LatLng(28.6429, 77.2191) to "New Delhi Railway Station",
-            LatLng(28.6119, 77.1157) to "Delhi Cantt station"
-        )
-
-        for ((location, title) in markerLocations) {
-            gMap.addMarker(MarkerOptions().position(location).title(title))}
+        fetchFirebaseData()
     }
 
     private fun searchLocation(locationName: String) {
@@ -125,7 +155,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     // Define the custom info window adapter as an inner class at the class level.
     inner class CustomInfoWindowAdapter : GoogleMap.InfoWindowAdapter {
         override fun getInfoWindow(marker: Marker): View? {
-            // Return null to use the default window frame.
             return null
         }
 
@@ -134,32 +163,23 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 .inflate(R.layout.custom_info_window, null)
             val ratingTextView = view.findViewById<TextView>(R.id.safety_rating_text)
 
-            // Retrieve the safety rating attached as a tag (default to 1)
-            val rating = marker.tag as? Int ?: 1
+            // Retrieve the density attached as a tag (default to 0.0)
+            val density = marker.tag as? Double ?: 0.0
 
-            when (rating) {
-                1 -> {
-                    ratingTextView.text = "Safe (1)"
-                    ratingTextView.setTextColor(Color.parseColor("#90EE90")) // light green
-                }
-                2 -> {
-                    ratingTextView.text = "Safe enough (2)"
-                    ratingTextView.setTextColor(Color.parseColor("#FFFF00")) // yellow
-                }
-                3 -> {
-                    ratingTextView.text = "Not safe (3)"
-                    ratingTextView.setTextColor(Color.parseColor("#FFA500")) // orange
-                }
-                4 -> {
-                    ratingTextView.text = "Dangerous (4)"
-                    ratingTextView.setTextColor(Color.parseColor("#FF0000")) // red
-                }
-                5 -> {
-                    ratingTextView.text = "Stampede likely (5)"
-                    ratingTextView.setTextColor(Color.parseColor("#000000")) // black
-                }
-            }
+            ratingTextView.text = "Density: ${String.format("%.2f", density)}"
+            ratingTextView.setTextColor(getDensityColor(density))
+
             return view
+        }
+
+        private fun getDensityColor(density: Double): Int {
+            return when {
+                density < 0.3 -> Color.parseColor("#90EE90") // Green (Safe)
+                density < 0.6 -> Color.parseColor("#FFFF00") // Yellow (Moderate)
+                density < 0.8 -> Color.parseColor("#FFA500") // Orange (Risky)
+                density < 1.0 -> Color.parseColor("#FF0000") // Red (High Risk)
+                else -> Color.parseColor("#000000") // Black (Stampede Likely)
+            }
         }
     }
 }
