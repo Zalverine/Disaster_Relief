@@ -202,7 +202,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun getDensityColor(density: Double): Int {
         return when {
             density < 0.3 -> Color.parseColor("#90EE90") // Green (Safe)
-            density < 0.6 -> Color.parseColor("#FFFF00") // Yellow (Moderate)
+            density < 0.6 -> Color.parseColor("#f5b807") // Yellow (Moderate)
             density < 0.8 -> Color.parseColor("#FFA500") // Orange (Risky)
             density < 1.0 -> Color.parseColor("#FF0000") // Red (High Risk)
             else -> Color.parseColor("#000000") // Black (Stampede Likely)
