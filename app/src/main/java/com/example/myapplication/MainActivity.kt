@@ -11,22 +11,21 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.myapplication.R
+
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.CircleOptions
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.firebase.database.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
-
-
-import com.google.firebase.database.*
 
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var gMap: GoogleMap
@@ -46,6 +45,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         val mapFragment = supportFragmentManager.findFragmentById(R.id._map) as? SupportMapFragment
         mapFragment?.getMapAsync(this)
 
+        // Initialize Firebase Database reference (update the node as needed)
         database = FirebaseDatabase.getInstance().getReference("stampede")
 
         // Set up search button click listener
@@ -58,26 +58,39 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
     }
+
     private fun fetchFirebaseData() {
         database.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
                     Log.d("@@@@", "Update done")
-                    gMap.clear()
-                    for (x in snapshot.children){
-                        val place = x.key
-                        val density = x.child("Density").getValue(Double::class.java)
+                    gMap.clear()  // Clears existing markers and circles
+
+                    // Iterate over each place in the Firebase node
+                    for (x in snapshot.children) {
+                        // Read data from Firebase
+                        val density = x.child("Density").getValue(Double::class.java) ?: 0.0
                         val lat = x.child("Latitude").getValue(Double::class.java) ?: 0.0
-                        val lan = x.child("Longitude").getValue(Double::class.java) ?: 0.0
+                        val lng = x.child("Longitude").getValue(Double::class.java) ?: 0.0
                         val loc = x.child("Location").getValue(String::class.java) ?: ""
 
-                        val marker = gMap.addMarker(MarkerOptions().position(LatLng(lat, lan)).title(loc))
+                        val position = LatLng(lat, lng)
+                        // Add marker with density tag
+                        val marker = gMap.addMarker(
+                            MarkerOptions().position(position).title(loc)
+                        )
                         marker?.tag = density
 
+                        // Add a circle around the marker
+                        gMap.addCircle(
+                            CircleOptions()
+                                .center(position)
+                                .radius(300.0)  // Radius in meters; adjust as needed
+                                .strokeColor(getDensityColor(density))
+                                .strokeWidth(4f)
+                                .fillColor(adjustAlpha(getDensityColor(density), 0.3f))
+                        )
                     }
-                    //val density = snapshot.child("densityHuman").getValue(Double::class.java) ?: 0.0
-
-
                 }
             }
 
@@ -86,8 +99,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         })
     }
-
-
 
     override fun onMapReady(googleMap: GoogleMap) {
         gMap = googleMap
@@ -112,22 +123,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     val address = addressList[0]
                     val location = LatLng(address.latitude, address.longitude)
 
-                    // Generate a random safety rating from 1 to 5
-                    val safetyRating = (1..5).random()
-
                     withContext(Dispatchers.Main) {
-                        // Clear previous markers and add a new one
-                        //gMap.clear()
-//                        val marker = gMap.addMarker(
-//                            MarkerOptions().position(location).title(locationName)
-//                        )
-//                        // Attach the safety rating to the marker as a tag
-//                        marker?.tag = safetyRating
-
                         Log.d("BeforeMove", "Visited")
-                        // Move the camera and show the custom info window
+                        // Move the camera to the searched location
                         gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 14f))
-                        //marker?.showInfoWindow()
                         Log.d("AfterMove", "Visited")
                     }
                 } else {
@@ -152,9 +151,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-    // Define the custom info window adapter as an inner class at the class level.
+    // Helper function to adjust the alpha (transparency) of a color.
+    private fun adjustAlpha(color: Int, factor: Float): Int {
+        val alpha = Math.round(Color.alpha(color) * factor)
+        val red = Color.red(color)
+        val green = Color.green(color)
+        val blue = Color.blue(color)
+        return Color.argb(alpha, red, green, blue)
+    }
+
+    // Define the custom info window adapter as an inner class.
     inner class CustomInfoWindowAdapter : GoogleMap.InfoWindowAdapter {
         override fun getInfoWindow(marker: Marker): View? {
+            // Use the default info window frame
             return null
         }
 
@@ -165,21 +174,38 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
             // Retrieve the density attached as a tag (default to 0.0)
             val density = marker.tag as? Double ?: 0.0
+            var smth = ""
+            if (density < 0.3){
+                smth = "Safe"
+            }
+            else if(density <0.6){
+                smth = "Moderate"
+            }
+            else if(density < 0.8){
+                smth = "Risky"
+            }
+            else if(density < 1){
+                smth = "Dangerous"
+            }
+            else{
+                smth = "stampede likely"
+            }
 
-            ratingTextView.text = "Density: ${String.format("%.2f", density)}"
+            ratingTextView.text = "Density: ${String.format("%.2f", density)} "+smth
             ratingTextView.setTextColor(getDensityColor(density))
 
             return view
         }
+    }
 
-        private fun getDensityColor(density: Double): Int {
-            return when {
-                density < 0.3 -> Color.parseColor("#90EE90") // Green (Safe)
-                density < 0.6 -> Color.parseColor("#FFFF00") // Yellow (Moderate)
-                density < 0.8 -> Color.parseColor("#FFA500") // Orange (Risky)
-                density < 1.0 -> Color.parseColor("#FF0000") // Red (High Risk)
-                else -> Color.parseColor("#000000") // Black (Stampede Likely)
-            }
+    // Returns a color based on the density value.
+    private fun getDensityColor(density: Double): Int {
+        return when {
+            density < 0.3 -> Color.parseColor("#90EE90") // Green (Safe)
+            density < 0.6 -> Color.parseColor("#FFFF00") // Yellow (Moderate)
+            density < 0.8 -> Color.parseColor("#FFA500") // Orange (Risky)
+            density < 1.0 -> Color.parseColor("#FF0000") // Red (High Risk)
+            else -> Color.parseColor("#000000") // Black (Stampede Likely)
         }
     }
 }
