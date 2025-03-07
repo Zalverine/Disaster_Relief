@@ -16,6 +16,7 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.Circle
 import com.google.android.gms.maps.model.CircleOptions
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
@@ -26,12 +27,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import kotlin.random.Random
 
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var gMap: GoogleMap
     private lateinit var searchInput: EditText
     private lateinit var searchButton: Button
     private lateinit var database: DatabaseReference
+    private var searchMarker: Marker? = null
+    private var searchCircle: Circle? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -119,12 +123,28 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             try {
                 val geocoder = Geocoder(this@MainActivity, Locale.getDefault())
                 val addressList = geocoder.getFromLocationName(locationName, 1)
+
+                val random_number = Random.nextDouble(0.0,2.0)
+                val format_number = String.format("%.2f",random_number).toDouble()
                 if (!addressList.isNullOrEmpty()) {
                     val address = addressList[0]
                     val location = LatLng(address.latitude, address.longitude)
 
+
                     withContext(Dispatchers.Main) {
                         Log.d("BeforeMove", "Visited")
+                        searchMarker?.remove()
+                        searchMarker = gMap.addMarker(MarkerOptions().position(location).title(locationName))
+                        searchMarker?.tag = format_number
+
+                        searchCircle?.remove()
+                        searchCircle = gMap.addCircle(
+                            CircleOptions()
+                                .center(location)
+                                .radius(300.0)  // Radius in meters; adjust as needed
+                                .strokeColor(getDensityColor(format_number))
+                                .strokeWidth(4f)
+                                .fillColor(adjustAlpha(getDensityColor(format_number), 0.3f)))
                         // Move the camera to the searched location
                         gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 14f))
                         Log.d("AfterMove", "Visited")
