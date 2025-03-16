@@ -9,30 +9,40 @@
 
     tools:context=".MainActivity">
 
-    <EditText
-        android:id="@+id/search_location"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Enter location"
-        android:padding="20dp"
-        android:layout_margin="20dp"
-        android:background="@android:drawable/editbox_background"/>
-
     <!-- Search Button -->
+
     <Button
         android:id="@+id/search_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Search"
-        android:layout_below="@id/search_location"
-        android:layout_marginTop="20dp"
-        android:layout_centerHorizontal="true"/>
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="98dp"
+        android:layout_marginTop="82dp"
+        android:layout_marginEnd="97dp"
+        android:text="SOS" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/_map"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/search_button"/>
+        android:layout_below="@id/search_button"
+        android:layout_marginTop="-1dp" />
+
+    <Button
+        android:id="@+id/button3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/search_button"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="96dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="94dp"
+        android:layout_marginBottom="66dp"
+        android:text="Volunteer" />
 
 </RelativeLayout>
