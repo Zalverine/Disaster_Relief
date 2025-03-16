@@ -50,7 +50,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         mapFragment?.getMapAsync(this)
 
         // Initialize Firebase Database reference (update the node as needed)
-        database = FirebaseDatabase.getInstance().getReference("stampede")
+        database = FirebaseDatabase.getInstance().getReference("Shelter")
 
         // Set up search button click listener
         searchButton.setOnClickListener {
@@ -73,10 +73,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     // Iterate over each place in the Firebase node
                     for (x in snapshot.children) {
                         // Read data from Firebase
-                        val density = x.child("Density").getValue(Double::class.java) ?: 0.0
+                        val density = x.child("food supply").getValue(Double::class.java) ?: 0.0
                         val lat = x.child("Latitude").getValue(Double::class.java) ?: 0.0
                         val lng = x.child("Longitude").getValue(Double::class.java) ?: 0.0
-                        val loc = x.child("Location").getValue(String::class.java) ?: ""
+                        val loc = x.child("name").getValue(String::class.java) ?: ""
 
                         val position = LatLng(lat, lng)
                         // Add marker with density tag
