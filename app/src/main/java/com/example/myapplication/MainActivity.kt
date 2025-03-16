@@ -31,16 +31,21 @@ import java.util.Locale
 
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var gMap: GoogleMap
-    private lateinit var searchButton: Button
+    private lateinit var sosButton: Button
+    private lateinit var volunteerButton: Button
     private lateinit var database: DatabaseReference
     private var searchMarker: Marker? = null
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    var why: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        searchButton = findViewById(R.id.search_button)
+        sosButton = findViewById(R.id.search_button)
+
+        volunteerButton = findViewById(R.id.button3)
+
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         val mapFragment = supportFragmentManager.findFragmentById(R.id._map) as? SupportMapFragment
@@ -48,8 +53,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
         database = FirebaseDatabase.getInstance().getReference("disaster")
 
-        searchButton.setOnClickListener {
-            getCurrentLocation()
+        sosButton.setOnClickListener {
+            why = true
+            getCurrentLocation(why)
+        }
+
+        volunteerButton.setOnClickListener{
+            why = false
+            getCurrentLocation(why)
         }
     }
 
@@ -97,13 +108,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         gMap = googleMap
         gMap.setInfoWindowAdapter(CustomInfoWindowAdapter())
 
-        val defaultLocation = LatLng(28.7041, 77.1025)
-        gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 10f))
+        val defaultLocation = LatLng(28.6096, 77.3303)
+        gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 13f))
 
         fetchFirebaseData()
     }
 
-    private fun getCurrentLocation() {
+    private fun getCurrentLocation(why: Boolean) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
@@ -114,20 +125,21 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     val currentLatLng = LatLng(it.latitude, it.longitude)
                     val locationName = getAddress(it.latitude, it.longitude)
 
-                    searchMarker?.remove()
+                    //searchMarker?.remove()
 
                     var bitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.sos)
                     var markerOptions = MarkerOptions().position(currentLatLng).title("You are here: $locationName").icon(bitmapDescriptor)
 
-
-                    searchMarker = gMap.addMarker(
-                        markerOptions
-                    )
-
+                    if (why) {
+                        searchMarker = gMap.addMarker(
+                            markerOptions
+                        )
+                    }
                     gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
 
-                    startRippleEffect(currentLatLng)
-
+                    if (why) {
+                        startRippleEffect(currentLatLng)
+                    }
                     Toast.makeText(this, "Current Location: $locationName", Toast.LENGTH_LONG).show()
                 } ?: run {
                     Toast.makeText(this, "Unable to fetch location", Toast.LENGTH_SHORT).show()
@@ -187,7 +199,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && grantResults.isNotEmpty() &&
             grantResults[0] == PackageManager.PERMISSION_GRANTED
         ) {
-            getCurrentLocation()
+            getCurrentLocation(why)
         }
     }
 
