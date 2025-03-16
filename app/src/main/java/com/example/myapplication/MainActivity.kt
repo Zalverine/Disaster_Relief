@@ -68,7 +68,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         val loc = x.child("name").getValue(String::class.java) ?: ""
 
                         val position = LatLng(lat, lng)
-                        val marker = gMap.addMarker(MarkerOptions().position(position).title(loc))
+
+                        var bitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.shelter)
+                        var markerOptions = MarkerOptions().position(position).title(loc).icon(bitmapDescriptor)
+
+                        val marker = gMap.addMarker(markerOptions)
                         marker?.tag = density
 
                         gMap.addCircle(
@@ -111,8 +115,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     val locationName = getAddress(it.latitude, it.longitude)
 
                     searchMarker?.remove()
+
+                    var bitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.sos)
+                    var markerOptions = MarkerOptions().position(currentLatLng).title("You are here: $locationName").icon(bitmapDescriptor)
+
+
                     searchMarker = gMap.addMarker(
-                        MarkerOptions().position(currentLatLng).title("You are here: $locationName")
+                        markerOptions
                     )
 
                     gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
