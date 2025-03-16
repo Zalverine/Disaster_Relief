@@ -1,14 +1,14 @@
 {
   "project_info": {
-    "project_number": "733688803527",
-    "firebase_url": "https://disaster-relief-fce40-default-rtdb.asia-southeast1.firebasedatabase.app",
-    "project_id": "disaster-relief-fce40",
-    "storage_bucket": "disaster-relief-fce40.firebasestorage.app"
+    "project_number": "435935090084",
+    "firebase_url": "https://justfewguys-2cea4-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "justfewguys-2cea4",
+    "storage_bucket": "justfewguys-2cea4.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:733688803527:android:5522e15c9abf525781cee2",
+        "mobilesdk_app_id": "1:435935090084:android:ba2de42d3e4d916e1c1d31",
         "android_client_info": {
           "package_name": "com.example.myapplication"
         }
@@ -16,7 +16,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCfYkH6DUdwhG5Lv93zaJVW-rv2fxkdyxg"
+          "current_key": "AIzaSyBzP31QDkecT_Ai2x3njz3g1YtKS-slHkM"
         }
       ],
       "services": {
