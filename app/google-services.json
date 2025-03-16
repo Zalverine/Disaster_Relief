@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "733688803527",
+    "firebase_url": "https://disaster-relief-fce40-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "disaster-relief-fce40",
+    "storage_bucket": "disaster-relief-fce40.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:733688803527:android:5522e15c9abf525781cee2",
+        "android_client_info": {
+          "package_name": "com.example.myapplication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfYkH6DUdwhG5Lv93zaJVW-rv2fxkdyxg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
