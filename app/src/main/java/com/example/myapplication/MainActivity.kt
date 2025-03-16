@@ -18,14 +18,10 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.OnMapReadyCallback
-import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.*
 import com.google.android.gms.maps.model.*
 import com.google.firebase.database.*
 import kotlinx.coroutines.*
-
 import java.io.IOException
 import java.util.Locale
 
@@ -36,16 +32,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var database: DatabaseReference
     private var searchMarker: Marker? = null
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    var why: Boolean = false
+    private var isSosPressed = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         sosButton = findViewById(R.id.search_button)
-
         volunteerButton = findViewById(R.id.button3)
-
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         val mapFragment = supportFragmentManager.findFragmentById(R.id._map) as? SupportMapFragment
@@ -54,13 +48,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         database = FirebaseDatabase.getInstance().getReference("disaster")
 
         sosButton.setOnClickListener {
-            why = true
-            getCurrentLocation(why)
+            isSosPressed = true
+            getCurrentLocation()
         }
 
-        volunteerButton.setOnClickListener{
-            why = false
-            getCurrentLocation(why)
+        volunteerButton.setOnClickListener {
+            isSosPressed = false
+            getCurrentLocation()
         }
     }
 
@@ -70,29 +64,40 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 if (snapshot.exists()) {
                     Log.d("@@@@", "Firebase Data Updated")
 
-                    searchMarker?.remove()
-
                     for (x in snapshot.children) {
-                        val density = x.child("food").getValue(Double::class.java) ?: 0.0
+                        val name = x.child("name").getValue(String::class.java) ?: "Unknown Place"
+                        val capacity = x.child("capacity").getValue(String::class.java) ?: "N/A"
+                        val food = x.child("food").getValue(Double::class.java) ?: 0.0
+                        val medicalKits = x.child("medical kits").getValue(Int::class.java) ?: 0
                         val lat = x.child("Latitude").getValue(Double::class.java) ?: 0.0
                         val lng = x.child("Longitude").getValue(Double::class.java) ?: 0.0
-                        val loc = x.child("name").getValue(String::class.java) ?: ""
 
                         val position = LatLng(lat, lng)
 
-                        var bitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.shelter)
-                        var markerOptions = MarkerOptions().position(position).title(loc).icon(bitmapDescriptor)
+                        // Add marker for the shelter
+                        val markerOptions = MarkerOptions()
+                            .position(position)
+                            .title(name)
+                            .icon(BitmapDescriptorFactory.fromResource(R.drawable.shelter))
 
                         val marker = gMap.addMarker(markerOptions)
-                        marker?.tag = density
 
+                        // Store additional info in marker tag
+                        marker?.tag = mapOf(
+                            "name" to name,
+                            "capacity" to capacity,
+                            "food" to food,
+                            "medicalKits" to medicalKits
+                        )
+
+                        // Add translucent black circle around the marker
                         gMap.addCircle(
                             CircleOptions()
                                 .center(position)
                                 .radius(300.0)
-                                .strokeColor(getDensityColor(density))
+                                .strokeColor(Color.BLACK)
                                 .strokeWidth(4f)
-                                .fillColor(adjustAlpha(getDensityColor(density), 0.3f))
+                                .fillColor(Color.argb(70, 0, 0, 0)) // Translucent black
                         )
                     }
                 }
@@ -114,7 +119,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         fetchFirebaseData()
     }
 
-    private fun getCurrentLocation(why: Boolean) {
+    private fun getCurrentLocation() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
@@ -125,21 +130,21 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     val currentLatLng = LatLng(it.latitude, it.longitude)
                     val locationName = getAddress(it.latitude, it.longitude)
 
-                    //searchMarker?.remove()
+                    val bitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.sos)
+                    val markerOptions = MarkerOptions().position(currentLatLng)
+                        .title("You are here: $locationName")
+                        .icon(bitmapDescriptor)
 
-                    var bitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.sos)
-                    var markerOptions = MarkerOptions().position(currentLatLng).title("You are here: $locationName").icon(bitmapDescriptor)
-
-                    if (why) {
-                        searchMarker = gMap.addMarker(
-                            markerOptions
-                        )
+                    if (isSosPressed) {
+                        searchMarker = gMap.addMarker(markerOptions)
                     }
+
                     gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
 
-                    if (why) {
+                    if (isSosPressed) {
                         startRippleEffect(currentLatLng)
                     }
+
                     Toast.makeText(this, "Current Location: $locationName", Toast.LENGTH_LONG).show()
                 } ?: run {
                     Toast.makeText(this, "Unable to fetch location", Toast.LENGTH_SHORT).show()
@@ -147,8 +152,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         } else {
             ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 LOCATION_PERMISSION_REQUEST_CODE
             )
         }
@@ -181,11 +185,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         val geocoder = Geocoder(this, Locale.getDefault())
         return try {
             val addresses: List<Address>? = geocoder.getFromLocation(latitude, longitude, 1)
-            if (!addresses.isNullOrEmpty()) {
-                addresses[0].getAddressLine(0)
-            } else {
-                "Unknown Location"
-            }
+            addresses?.firstOrNull()?.getAddressLine(0) ?: "Unknown Location"
         } catch (e: IOException) {
             Log.e("MapsActivity", "Geocoder failed", e)
             "Geocoder Error"
@@ -196,10 +196,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && grantResults.isNotEmpty() &&
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE &&
+            grantResults.isNotEmpty() &&
             grantResults[0] == PackageManager.PERMISSION_GRANTED
         ) {
-            getCurrentLocation(why)
+            getCurrentLocation()
         }
     }
 
@@ -214,34 +215,26 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     inner class CustomInfoWindowAdapter : GoogleMap.InfoWindowAdapter {
         override fun getInfoWindow(marker: Marker): View? = null
-        override fun getInfoContents(marker: Marker): View {
+        override fun getInfoContents(marker: Marker): View? {
+            if (marker.title == "You are here") return null // Hide info window for SOS markers
+
             val view = LayoutInflater.from(this@MainActivity)
                 .inflate(R.layout.custom_info_window, null)
-            val ratingTextView = view.findViewById<TextView>(R.id.safety_rating_text)
 
-            val density = marker.tag as? Double ?: 0.0
-            val densityStatus = when {
-                density < 0.4 -> "Safe"
-                density < 0.5 -> "Moderate"
-                density < 0.6 -> "Risky"
-                density < 1.5 -> "Dangerous"
-                else -> "Stampede Likely"
-            }
+            val info = marker.tag as? Map<String, Any> ?: return null
 
-            ratingTextView.text = "Density: ${String.format("%.2f", density)} $densityStatus"
-            ratingTextView.setTextColor(getDensityColor(density))
+            val nameTextView = view.findViewById<TextView>(R.id.textView_name)
+            val capacityTextView = view.findViewById<TextView>(R.id.textView_capacity)
+            val foodTextView = view.findViewById<TextView>(R.id.textView_food)
+            val medicalKitsTextView = view.findViewById<TextView>(R.id.textView_medical_kits)
+
+            nameTextView.text = info["name"] as String
+            capacityTextView.text = "Capacity: ${info["capacity"]}"
+            foodTextView.text = "Food: ${info["food"]}"
+            medicalKitsTextView.text = "Medical Kits: ${info["medicalKits"]}"
 
             return view
         }
-    }
 
-    private fun getDensityColor(density: Double): Int {
-        return when {
-            density < 0.4 -> Color.parseColor("#90EE90")
-            density < 0.5 -> Color.parseColor("#f5b807")
-            density < 0.6 -> Color.parseColor("#FFA500")
-            density < 1.5 -> Color.parseColor("#FF0000")
-            else -> Color.parseColor("#000000")
-        }
     }
 }
